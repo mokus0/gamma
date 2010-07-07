@@ -1,0 +1,26 @@
+name:                   gamma
+version:                0.7
+stability:              provisional
+
+cabal-version:          >= 1.6
+build-type:             Simple
+
+author:                 James Cook <mokus@deepbondi.net>
+maintainer:             James Cook <mokus@deepbondi.net>
+license:                PublicDomain
+homepage:               /dev/null
+
+category:               Math, Numerical
+synopsis:               Gamma function and related functions.
+description:            The gamma function, incomplete gamma functions,
+                        beta function, and factorials.
+
+extra-source-files:     extras/*.hs
+
+Library
+  hs-source-dirs:       src
+  exposed-modules:      Math.Gamma
+                        Math.Gamma.Incomplete
+                        Math.Gamma.Stirling
+                        Math.Gamma.Lanczos
+  build-depends:        base >= 3 && <5, continued-fractions, converge, vector >= 0.5 && < 0.7
