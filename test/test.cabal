@@ -1,0 +1,25 @@
+name:                   test
+version:                0.0.0.1
+stability:              experimental
+
+cabal-version:          >= 1.2
+build-type:             Simple
+
+author:                 James Cook <mokus@deepbondi.net>
+maintainer:             James Cook <mokus@deepbondi.net>
+license:                Unspecified
+homepage:               /dev/null
+
+category:               Unclassified
+synopsis:               Test suite for gamma package.
+description:            Test suite for gamma package.
+
+Executable gamma-tests
+  ghc-options:          -threaded
+  hs-source-dirs:       src
+  main-is:              Tests.hs
+  build-depends:        base >= 3 && <5, 
+                        gamma,
+                        QuickCheck >= 2, 
+                        test-framework, 
+                        test-framework-quickcheck2

@@ -48,10 +48,12 @@ a cs z = head cs + sum [c / (z + k) | c <- tail cs | k <- iterate (1+) 1]
 -- |Extend an approximation of the gamma function from the domain x > 0.5 to
 -- the whole real line.
 {-# INLINE reflect #-}
-reflect :: (Floating a, Ord a) => (a -> a) -> a -> a
+reflect :: (RealFloat a, Ord a) => (a -> a) -> a -> a
 reflect gamma z
     | z > 0.5   = gamma z
-    | otherwise = pi / (sin (pi * z) * gamma (1-z))
+    | otherwise = case properFraction z of
+        (_,0)   -> 0/0
+        _       -> pi / (sin (pi * z) * gamma (1-z))
 
 -- |Extend an approximation of the gamma function from the domain Re(x) > 0.5
 -- to the whole complex plane.
@@ -64,10 +66,12 @@ reflectC gamma z
 -- |Extend an approximation of the natural logarithm of the gamma function 
 -- from the domain x > 0.5 to the whole real line.
 {-# INLINE reflectLn #-}
-reflectLn :: (Floating a, Ord a) => (a -> a) -> a -> a
+reflectLn :: (RealFloat a, Ord a) => (a -> a) -> a -> a
 reflectLn lnGamma z
     | z > 0.5   = lnGamma z
-    | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
+    | otherwise = case properFraction z of
+        (_,0) -> log (0/0)
+        _     -> log pi - log (sin (pi * z)) - lnGamma (1-z)
 
 -- |Extend an approximation of the natural logarithm of the gamma function 
 -- from the domain Re(x) > 0.5 to the whole complex plane.
