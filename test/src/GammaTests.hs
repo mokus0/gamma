@@ -7,8 +7,8 @@ import Test.Framework (testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
-instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
-    arbitrary = liftA2 (:+) arbitrary arbitrary
+-- instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
+--     arbitrary = liftA2 (:+) arbitrary arbitrary
 
 eps :: RealFloat a => a
 eps = eps'
@@ -19,10 +19,10 @@ isSane x = all (\f -> not (f x)) [isNaN, isInfinite, isDenormalized]
 
 tests = 
     [ testGroup "gamma"
-        [ testGroup "Float"          (realGammaTests    (256  * eps :: Float))
-        , testGroup "Double"         (realGammaTests    (512  * eps :: Double))
-        , testGroup "Complex Float"  (complexGammaTests (2048 * eps :: Float))
-        , testGroup "Complex Double" (complexGammaTests (4096 * eps :: Double))
+        [ testGroup "Float"          (realGammaTests    (1024  * eps :: Float))
+        , testGroup "Double"         (realGammaTests    (512   * eps :: Double))
+        , testGroup "Complex Float"  (complexGammaTests (16636 * eps :: Float))
+        , testGroup "Complex Double" (complexGammaTests (16636 * eps :: Double))
         ]
     ]
 
@@ -38,6 +38,10 @@ complexGammaTests eps = gammaTests magnitude realPart imagPart eps ++
     [ testProperty "conjugate" $ \x -> 
         let gam = gamma x
          in isSane (magnitude gam) ==> conjugate gam ~= gamma (conjugate x)
+    , testProperty "real argument" $ \(Positive x) ->
+        let z = x :+ 0
+            gam = gamma x
+         in isSane gam ==> (gam :+ 0) ~= gamma z
     ]
     where
         infix 4 ~=
@@ -45,21 +49,27 @@ complexGammaTests eps = gammaTests magnitude realPart imagPart eps ++
 
 gammaTests abs real imag eps =
     [ testProperty "increment arg" $ \x ->
-        abs x > 1 ==>
         let gam = gamma (x+1)
-         in isSane (abs gam) ==> gam ~= x * gamma x
+         in abs x > 0 && isSane (abs gam)
+            ==> gam / x ~= gamma x
+             || gam ~= x * gamma x
     , testProperty "reflect" $ \x ->
-        abs x > 1 ==>
+        abs x > 0 ==>
         let a = gamma x
             b = gamma (1 - x)
             c = pi / sin (pi * x)
          in all (isSane.abs) [a,b,c] 
             ==> a*b ~= c
+             || a ~= c/b
+             || b ~= c/a
              || a*b*sin(pi*x) ~= pi
     ]
     where
         infix 4 ~=
-        x ~= y = (errBy abs x y <= eps)
+        x ~= y 
+            =  absErr <= eps
+            || absErr <= eps * min (abs x) (abs y)
+            where absErr = abs (x-y)
 
 err a b = errBy abs a b
 errBy abs a b 

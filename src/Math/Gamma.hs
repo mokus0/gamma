@@ -60,8 +60,11 @@ instance Gamma Float where
             facs        = V.map lnGamma (V.enumFromN 1 nFacs)
 
 instance Gamma Double where
-    gamma = reflect (gammaLanczos g cs)
+    gamma x
+        | abs x > 1 = approx (x+1) / x
+        | otherwise = approx (x-1) * (x-1)
         where
+            approx = reflect (gammaLanczos g cs)
             g = 2*pi
             cs = [1.0000000000000002,311.60117505414695,-498.65119046033163,244.08472899875767,-38.67036462939322,1.3350899103585203,-1.8972831806242229e-3,-3.935368195357295e-7,2.592464641764731e-6,-3.2263565156368265e-6,2.5666169886566876e-6,-1.3737776806198937e-6,4.4551204024819644e-7,-6.576826592057796e-8]
 
@@ -85,7 +88,7 @@ complexFloatToDouble :: Complex Float -> Complex Double
 complexFloatToDouble (a :+ b) = realToFrac a :+ realToFrac b
 
 instance Gamma (Complex Float) where
-    gamma = complexDoubleToFloat . reflectC (gammaLanczos g cs) . complexFloatToDouble
+    gamma = complexDoubleToFloat . gamma . complexFloatToDouble
         where
             g = pi
             cs = [1.0000000249904433,9.100643759042066,-4.3325519094475,
