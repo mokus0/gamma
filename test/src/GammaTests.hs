@@ -32,12 +32,16 @@ realGammaTests eps = gammaTests abs id (const 0) eps ++
             gamma_x = gamma x `asTypeOf` eps
          in x > 2 && isSane gamma_x
             ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
-        
     ]
 
 complexGammaTests eps = gammaTests magnitude realPart imagPart eps ++
-    [
+    [ testProperty "conjugate" $ \x -> 
+        let gam = gamma x
+         in isSane (magnitude gam) ==> conjugate gam ~= gamma (conjugate x)
     ]
+    where
+        infix 4 ~=
+        x ~= y = (errBy magnitude x y <= eps)
 
 gammaTests abs real imag eps =
     [ testProperty "increment arg" $ \x ->

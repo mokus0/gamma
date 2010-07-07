@@ -61,6 +61,9 @@ reflect gamma z
 reflectC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
 reflectC gamma z
     | realPart z > 0.5  = gamma z
+    | imagPart z == 0
+    && snd (properFraction (realPart z)) == 0
+                        = 0/0
     | otherwise         = pi / (sin (pi * z) * gamma (1-z))
 
 -- |Extend an approximation of the natural logarithm of the gamma function 
@@ -79,5 +82,8 @@ reflectLn lnGamma z
 reflectLnC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
 reflectLnC lnGamma z
     | realPart z > 0.5  = lnGamma z
+    | imagPart z == 0
+    && snd (properFraction (realPart z)) == 0
+                        = log (0/0)
     | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
 
