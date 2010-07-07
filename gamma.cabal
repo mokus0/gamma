@@ -15,7 +15,15 @@ synopsis:               Gamma function and related functions.
 description:            The gamma function, incomplete gamma functions,
                         beta function, and factorials.
 
+tested-with:            GHC == 6.10.4,
+                        GHC == 6.12.1, GHC == 6.12.3
+
 extra-source-files:     extras/*.hs
+
+source-repository head
+  type: darcs
+  location: http://code.haskell.org/~mokus/gamma
+
 
 Library
   hs-source-dirs:       src
