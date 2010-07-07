@@ -1,5 +1,6 @@
 {-# LANGUAGE ParallelListComp #-}
--- |Stirling's approximation to the gamma function
+-- |Stirling's approximation to the gamma function and utility functions for
+-- selecting coefficients.
 module Math.Gamma.Stirling (lnGammaStirling, cs, s, abs_s, terms) where
 
 import qualified Data.Vector as V
@@ -9,6 +10,7 @@ import qualified Data.Vector as V
 -- Some precomputed finite prefix of 'cs' should be fed to this function, the 
 -- length of which will determine the accuracy achieved.)
 {-# INLINE lnGammaStirling #-}
+lnGammaStirling :: Floating a => [a] -> a -> a
 lnGammaStirling cs z = (z - 0.5) * log z - z + 0.5 * log (2*pi) + sum [c / q | c <- cs | q <- risingPowers (z+1)]
     where
 
@@ -62,11 +64,12 @@ abs_s n k
             where
                 abs_s n k = table !! n V.! k
 
--- Compute the number of terms required to achieve a given precision for a
+-- |Compute the number of terms required to achieve a given precision for a
 -- given value of z.  The mamimum will typically (always?) be around 1, and 
 -- seems to be more or less independent of the precision desired (though not 
 -- of the machine epsilon - essentially, near zero I think this method is
 -- extremely numerically unstable).
+terms :: (Num t, Floating a, Ord a) => a -> a -> t
 terms prec z = converge (eps z) (f z)
     where
         cs' = cs

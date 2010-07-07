@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed as V
 import Math.ContinuedFraction
 import Math.Sequence.Converge
 
--- |Gamma function.  Minimal definition is ether gamma or lnGamma.
+-- |Gamma function.  Minimal definition is ether 'gamma' or 'lnGamma'.
 class Floating a => Gamma a where
     -- |The gamma function:  gamma z == integral from 0 to infinity of
     -- @\t -> t**(z-1) * exp (negate t)@
@@ -197,5 +197,6 @@ instance Factorial Double where
             facs        = V.scanl (*) 1 (V.enumFromN 1 nFacs)
             infinity    = facs V.! nFacs
 
+-- |The beta function: @beta z w@ == @gamma z * gamma w / gamma (z+w)@
 beta :: Gamma a => a -> a -> a
 beta z w = exp (lnGamma z + lnGamma w - lnGamma (z+w))

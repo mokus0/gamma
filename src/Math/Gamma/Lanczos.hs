@@ -16,27 +16,11 @@ module Math.Gamma.Lanczos
 
 import Data.Complex
 
-{-# INLINE reflect #-}
-reflect gamma z
-    | z > 0.5   = gamma z
-    | otherwise = pi / (sin (pi * z) * gamma (1-z))
-
-{-# INLINE reflectC #-}
-reflectC gamma z
-    | realPart z > 0.5  = gamma z
-    | otherwise         = pi / (sin (pi * z) * gamma (1-z))
-
-{-# INLINE reflectLn #-}
-reflectLn lnGamma z
-    | z > 0.5   = lnGamma z
-    | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
-
-{-# INLINE reflectLnC #-}
-reflectLnC lnGamma z
-    | realPart z > 0.5  = lnGamma z
-    | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
-
+-- |Compute Lanczos' approximation to the gamma function, using the specified
+-- constants.  Valid for Re(x) > 0.5.  Use 'reflect' or 'reflectC' to extend
+-- to the whole real line or complex plane, respectively.
 {-# INLINE gammaLanczos #-}
+gammaLanczos :: Floating a => a -> [a] -> a -> a
 gammaLanczos _ [] _ = error "gammaLanczos: empty coefficient list"
 gammaLanczos g cs zp1
     = sqrt (2*pi) * x ** (zp1 - 0.5) * exp (negate x) * a cs z
@@ -44,7 +28,12 @@ gammaLanczos g cs zp1
         x = zp1 + (g - 0.5)
         z = zp1 - 1
 
+-- |Compute Lanczos' approximation to the natural logarithm of the gamma
+-- function, using the specified constants.  Valid for Re(x) > 0.5.  Use
+-- 'reflectLn' or 'reflectLnC' to extend to the whole real line or complex
+-- plane, respectively.
 {-# INLINE lnGammaLanczos #-}
+lnGammaLanczos :: Floating a => a -> [a] -> a -> a
 lnGammaLanczos _ [] _ = error "lnGammaLanczos: empty coefficient list"
 lnGammaLanczos g cs zp1 
     = log (sqrt (2*pi)) + log x * (zp1 - 0.5) - x + log (a cs z)
@@ -55,3 +44,36 @@ lnGammaLanczos g cs zp1
 {-# INLINE a #-}
 a [] z = error "Math.Gamma.Lanczos.a: empty coefficient list"
 a cs z = head cs + sum [c / (z + k) | c <- tail cs | k <- iterate (1+) 1]
+
+-- |Extend an approximation of the gamma function from the domain x > 0.5 to
+-- the whole real line.
+{-# INLINE reflect #-}
+reflect :: (Floating a, Ord a) => (a -> a) -> a -> a
+reflect gamma z
+    | z > 0.5   = gamma z
+    | otherwise = pi / (sin (pi * z) * gamma (1-z))
+
+-- |Extend an approximation of the gamma function from the domain Re(x) > 0.5
+-- to the whole complex plane.
+{-# INLINE reflectC #-}
+reflectC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
+reflectC gamma z
+    | realPart z > 0.5  = gamma z
+    | otherwise         = pi / (sin (pi * z) * gamma (1-z))
+
+-- |Extend an approximation of the natural logarithm of the gamma function 
+-- from the domain x > 0.5 to the whole real line.
+{-# INLINE reflectLn #-}
+reflectLn :: (Floating a, Ord a) => (a -> a) -> a -> a
+reflectLn lnGamma z
+    | z > 0.5   = lnGamma z
+    | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
+
+-- |Extend an approximation of the natural logarithm of the gamma function 
+-- from the domain Re(x) > 0.5 to the whole complex plane.
+{-# INLINE reflectLnC #-}
+reflectLnC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
+reflectLnC lnGamma z
+    | realPart z > 0.5  = lnGamma z
+    | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
+
