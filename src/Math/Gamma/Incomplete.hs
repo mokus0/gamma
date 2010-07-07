@@ -9,7 +9,7 @@ import {-# SOURCE #-}  Math.Gamma
 import Math.ContinuedFraction
 import Math.Sequence.Converge
 
--- |Continued fraction representtion of the lower incomplete gamma function.
+-- |Continued fraction representation of the lower incomplete gamma function.
 lowerGammaCF :: (Floating a, Enum a) => a -> a -> Math.ContinuedFraction.CF a
 lowerGammaCF s z = gcf 0
     [ (p,q)
@@ -38,7 +38,7 @@ lowerGammaHypGeom s x = sign (exp (log (abs x) * s - x) / s * m_1_sp1 s x)
                     _                   -> const (0/0)
                 | otherwise = id
 
--- |Continued fraction representtion of the regularized lower incomplete gamma function.
+-- |Continued fraction representation of the regularized lower incomplete gamma function.
 pCF :: (Gamma a, Ord a, Enum a) => a -> a -> CF a
 pCF s x = gcf 0
     [ (p,q)
