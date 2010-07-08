@@ -29,58 +29,60 @@ x ~= y
 isSane x = all (\f -> not (f x)) [isNaN, isInfinite, isDenormalized]
 
 tests = 
-    [ testGroup "gamma"
-        [ testGroup "Float"             (realGammaTests    (gamma  :: Float  -> Float ))
-        , testGroup "Double"            (realGammaTests    (gamma  :: Double -> Double))
-        , testGroup "Double (tgamma)"   (realGammaTests    (tgamma :: Double -> Double))
-        , testGroup "Complex Float"     (complexGammaTests (gamma  :: Complex Float  -> Complex Float ))
-        , testGroup "Complex Double"    (complexGammaTests (gamma  :: Complex Double -> Complex Double))
+    [ testGroup "Float"
+        [ testGroup "Native"  (realTests gamma (lnGamma :: Float -> Float))
+        , testGroup "Complex" (complexTests gamma (lnGamma :: Complex Float -> Complex Float))
         ]
-    , testGroup "lnGamma"
-        [ testGroup "Float"             (realLogGammaTests     gamma (lnGamma :: Float          -> Float         ))
-        , testGroup "Double"            (realLogGammaTests     gamma (lnGamma :: Double         -> Double        ))
-        , testGroup "Double (lgamma)"   (realLogGammaTests    tgamma (lgamma  :: Double         -> Double        ))
-        , testGroup "Complex Float"     (complexLogGammaTests  gamma (lnGamma :: Complex Float  -> Complex Float ))
-        , testGroup "Complex Double"    (complexLogGammaTests  gamma (lnGamma :: Complex Double -> Complex Double))
-        ]
-    , testGroup "lnFactorial"
-        [ testGroup "Float"          (logFactorialTests abs       (eps :: Float))
-        , testGroup "Double"         (logFactorialTests abs       (eps :: Double))
-        , testGroup "Complex Float"  (logFactorialTests magnitude (eps :: Float))
-        , testGroup "Complex Double" (logFactorialTests magnitude (eps :: Double))
+    , testGroup "Double"
+        [ testGroup "Native"  (realTests    gamma (lnGamma :: Double -> Double))
+        , testGroup "FFI"     (realTests    tgamma lgamma)
+        , testGroup "Complex" (complexTests gamma (lnGamma :: Complex Double -> Complex Double))
         ]
     ]
 
-realGammaTests gamma = 
+realTests gamma lnGamma = 
     let ?mag = abs
+        ?eps = eps
         ?complex = False
-     in gammaTests gamma id (const 0) ++
-        [ testProperty "between factorials" $ \(Positive x) -> 
-            let gam x = fromInteger (product [1..x-1])
-                gamma_x = gamma x `asTypeOf` eps
-             in x > 2 && isSane gamma_x
-                ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
-        , testProperty "agrees with C tgamma" $ \x ->
-            let a = gamma x
-                b = realToFrac (tgamma (realToFrac x))
-             in isSane a ==> 
-                let ?eps = 512*eps in a ~= b
+     in [ testGroup "gamma"       (realGammaTests    gamma)
+        , testGroup "lnGamma"     (realLogGammaTests gamma lnGamma)
+        , testGroup "lnFactorial" (logFactorialTests lnGamma lnFactorial)
         ]
 
-complexGammaTests gamma = 
+complexTests gamma lnGamma = 
     let ?mag = magnitude
         ?eps = eps
         ?complex = True
-     in gammaTests gamma realPart imagPart ++
-        [ testProperty "conjugate" $ \x -> 
-            let gam = gamma x
-             in isSane (magnitude gam) ==> conjugate gam ~= gamma (conjugate x)
-        , testProperty "real argument" $ \(Positive x) ->
-            let z = x :+ 0
-                gam = Math.Gamma.gamma x
-             in isSane gam ==> (gam :+ 0) ~= gamma z
+     in [ testGroup "gamma"   (complexGammaTests    gamma)
+        , testGroup "lnGamma" (complexLogGammaTests gamma lnGamma)
+        , testGroup "lnFactorial" (logFactorialTests lnGamma lnFactorial)
         ]
 
+realGammaTests gamma = 
+    gammaTests gamma id (const 0) ++
+    [ testProperty "between factorials" $ \(Positive x) -> 
+        let gam x = fromInteger (product [1..x-1])
+            gamma_x = gamma x `asTypeOf` eps
+         in x > 2 && isSane gamma_x
+            ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
+    , testProperty "agrees with C tgamma" $ \x ->
+        let a = gamma x
+            b = realToFrac (tgamma (realToFrac x))
+         in isSane a ==> 
+            let ?eps = 512*eps in a ~= b
+    ]
+
+complexGammaTests gamma = 
+    gammaTests gamma realPart imagPart ++
+    [ testProperty "conjugate" $ \x -> 
+        let gam = gamma x
+         in isSane (magnitude gam) ==> conjugate gam ~= gamma (conjugate x)
+    , testProperty "real argument" $ \(Positive x) ->
+        let z = x :+ 0
+            gam = Math.Gamma.gamma x
+         in isSane gam ==> (gam :+ 0) ~= gamma z
+    ]
+    
 gammaTests gamma real imag =
     [ testProperty "increment arg" $ \x ->
         let a = gamma x
@@ -163,15 +165,9 @@ complexLogGammaTests gamma lnGamma =
                  in (gam :+ 0) ~= lnGamma z
         ]
 
-logFactorialTests abs eps =
+logFactorialTests lnGamma lnFactorial =
     [ testProperty "agrees with lnGamma" $ \x ->
         let gam = lnGamma (fromInteger x + 1)
-         in isSane (abs gam)
+         in isSane (?mag gam)
             ==> gam ~= lnFactorial x
     ]
-    where
-        infix 4 ~=
-        x ~= y 
-            =  absErr <= eps
-            || absErr <= eps * min (abs x) (abs y)
-            where absErr = abs (x-y)
