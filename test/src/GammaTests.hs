@@ -1,3 +1,4 @@
+{-# LANGUAGE ForeignFunctionInterface, ImplicitParams #-}
 module GammaTests where
 
 import Control.Applicative
@@ -7,6 +8,9 @@ import Test.Framework (testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+foreign import ccall "math.h lgamma" lgamma :: Double -> Double
+foreign import ccall "math.h tgamma" tgamma :: Double -> Double
+
 -- instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
 --     arbitrary = liftA2 (:+) arbitrary arbitrary
 
@@ -15,12 +19,19 @@ eps = eps'
     where
         eps' = encodeFloat 1 (1 - floatDigits eps')
 
+infix 4 ~=
+x ~= y 
+    =  absErr <= ?eps
+    || absErr <= ?eps * min (?mag x) (?mag y)
+    where absErr = ?mag (x-y)
+
+
 isSane x = all (\f -> not (f x)) [isNaN, isInfinite, isDenormalized]
 
 tests = 
     [ testGroup "gamma"
-        [ testGroup "Float"          (realGammaTests    (1024  * eps :: Float))
-        , testGroup "Double"         (realGammaTests    (512   * eps :: Double))
+        [ testGroup "Float"          (realGammaTests    (eps :: Float))
+        , testGroup "Double"         (realGammaTests    (eps :: Double))
         , testGroup "Complex Float"  (complexGammaTests (16636 * eps :: Float))
         , testGroup "Complex Double" (complexGammaTests (16636 * eps :: Double))
         ]
@@ -38,15 +49,23 @@ tests =
         ]
     ]
 
-realGammaTests eps = gammaTests abs id (const 0) eps ++
-    [ testProperty "between factorials" $ \(Positive x) -> 
-        let gam x = fromInteger (product [1..x-1])
-            gamma_x = gamma x `asTypeOf` eps
-         in x > 2 && isSane gamma_x
-            ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
-    ]
+realGammaTests eps = 
+    let ?mag = abs
+     in gammaTests (abs) id (const 0) (512*eps) ++
+        [ testProperty "between factorials" $ \(Positive x) -> 
+            let gam x = fromInteger (product [1..x-1])
+                gamma_x = gamma x `asTypeOf` eps
+             in x > 2 && isSane gamma_x
+                ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
+        , testProperty "agrees with C tgamma" $ \x ->
+            let a = gamma x
+                b = realToFrac (tgamma (realToFrac x))
+             in isSane a ==> 
+                let ?eps = 512*eps in a ~= b
+        ]
 
-complexGammaTests eps = gammaTests magnitude realPart imagPart eps ++
+complexGammaTests eps = 
+    gammaTests magnitude realPart imagPart eps ++
     [ testProperty "conjugate" $ \x -> 
         let gam = gamma x
          in isSane (magnitude gam) ==> conjugate gam ~= gamma (conjugate x)
@@ -117,7 +136,17 @@ realLogGammaTests eps = logGammaTests abs id (const 0) eps ++
             gamma_x = lnGamma x `asTypeOf` eps
          in x > 2 && isSane gamma_x
             ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
+    , testProperty "agrees with C lgamma" $ \(NonNegative x) ->
+        let a = lnGamma x
+            b = realToFrac (lgamma (realToFrac x))
+         in isSane a ==> a ~= b
     ]
+    where
+        infix 4 ~=
+        x ~= y 
+            =  absErr <= eps
+            || absErr <= eps * min (abs x) (abs y)
+            where absErr = abs (x-y)
 
 complexLogGammaTests eps = logGammaTests magnitude realPart imagPart eps ++
     [ testProperty "real argument" $ \(Positive x) ->
