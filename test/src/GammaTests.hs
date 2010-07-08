@@ -80,7 +80,9 @@ complexGammaTests gamma =
     , testProperty "real argument" $ \(Positive x) ->
         let z = x :+ 0
             gam = Math.Gamma.gamma x
-         in isSane gam ==> (gam :+ 0) ~= gamma z
+         in isSane gam ==> 
+            let ?mag = abs; ?eps = 512 * eps
+             in gam ~= realPart (gamma z)
     ]
     
 gammaTests gamma real imag =
