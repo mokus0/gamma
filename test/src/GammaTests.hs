@@ -53,6 +53,7 @@ tests =
 
 realGammaTests gamma = 
     let ?mag = abs
+        ?complex = False
      in gammaTests gamma id (const 0) ++
         [ testProperty "between factorials" $ \(Positive x) -> 
             let gam x = fromInteger (product [1..x-1])
@@ -69,6 +70,7 @@ realGammaTests gamma =
 complexGammaTests gamma = 
     let ?mag = magnitude
         ?eps = eps
+        ?complex = True
      in gammaTests gamma realPart imagPart ++
         [ testProperty "conjugate" $ \x -> 
             let gam = gamma x
@@ -81,28 +83,25 @@ complexGammaTests gamma =
 
 gammaTests gamma real imag =
     [ testProperty "increment arg" $ \x ->
-        let a = gamma (x + 1)   ; a' = a / x
-            b = x * b'          ; b' = gamma x
-         in ?mag x > 0 && all (isSane . ?mag) [a,b,a',b']
-            ==> 
-            let ?eps = 256 * eps
-                -- if ?mag x >= 1 -- real x > 1 || abs (imag x) > 1
-                --     then 32 * (1 +        ?mag x)  ^ 2 * ?eps
-                --     else 32 * (1 + recip (?mag x)) ^ 2 * ?eps
-                        --- 8 * ?eps / abs (real x - fromInteger (round (real x)))
-             in a ~= b || a' ~= b'
+        let a = gamma x
+            b = gamma (x + 1)
+            margin  | ?complex  = 8
+                    | otherwise = 4
+         in all (isSane . ?mag) [a,b,recip a, recip b]
+            ==> ?mag (a - b/x) <= margin * (max 2 (1 + recip (?mag x))) * eps * ?mag a
+             || ?mag (a*x - b) <= margin * (max 2 (1 +        ?mag x))  * eps * ?mag b
     , testProperty "reflect" $ \x ->
         ?mag x > 0 ==>
         let a = gamma x
             b = gamma (1 - x)
-            c = pi / c'   ; c' = sin (pi * x)
-         in all (isSane . ?mag) [a,b,c,c']
-            ==> 
-            let ?eps = 256 * eps
-             in     a*b ~= c
-                 || a ~= c/b
-                 || b ~= c/a
-                 || a*b*c' ~= pi
+            c = sin (pi * x) / pi
+            margin  | ?complex  = 16
+                    | otherwise = 256
+         in all (isSane . ?mag) [a,b,c]
+            -- There may be tighter bounds to be found but I haven't
+            -- been able to derive them yet.
+            ==> ?mag (a*b*c-1) <= margin * eps * (1 + ?mag c * (1 + ?mag (a+b)))
+             || ?mag (a*b*c-1) <= margin * eps * (?mag (a*b) + ?mag (a*c) + ?mag (b*c))
     ]
 
 logGammaTests gamma lnGamma real imag =
@@ -110,14 +109,14 @@ logGammaTests gamma lnGamma real imag =
         let gam = lnGamma (x+1)
          in real x > 0 && isSane (?mag gam)
             ==> 
-            let ?eps = 256 * eps
+            let ?eps = 16 * eps
              in gam - log x ~= lnGamma x
                 || gam ~= log x + lnGamma x
     , testProperty "reflect" $ \x ->
         ?mag x > 0 ==>
         let a = lnGamma x
             b = lnGamma (1 - x)
-            c = log pi - c';    c' = log (sin (pi * x)))
+            c = log pi - c';    c' = log (sin (pi * x))
          in all (isSane . ?mag) [a,b,c] 
             ==> 
             let ?eps = 512 * eps
@@ -128,15 +127,18 @@ logGammaTests gamma lnGamma real imag =
     , testProperty "agrees with log . gamma" $ \x ->
         let a = log b'    ; a' = exp b
             b = lnGamma x ; b' = gamma x
+            margin  | ?complex   = 1024
+                    | otherwise  = 16
          in   (real x > 1 || abs (imag x) > 1)
             && all (isSane . ?mag) [a,b,a',b'] ==>
-            let ?eps = 8 * eps
+            let ?eps = margin * eps
              in a ~= b || a' ~= b'
     ]
 
 realLogGammaTests gamma lnGamma = 
     let ?mag = abs
-     in logGammaTests lnGamma id (const 0) ++
+        ?complex = False
+     in logGammaTests gamma lnGamma id (const 0) ++
         [ testProperty "between factorials" $ \(Positive x) -> 
             let gam x = sum $ map (log.fromInteger) [1..x-1]
                 gamma_x = lnGamma x `asTypeOf` eps
@@ -151,7 +153,8 @@ realLogGammaTests gamma lnGamma =
 
 complexLogGammaTests gamma lnGamma = 
     let ?mag = magnitude
-     in logGammaTests lnGamma realPart imagPart ++
+        ?complex = True
+     in logGammaTests gamma lnGamma realPart imagPart ++
         [ testProperty "real argument" $ \(Positive x) ->
             let z = x :+ 0
                 gam = Math.Gamma.lnGamma x
