@@ -13,7 +13,7 @@ import Math.Sequence.Converge
 lowerGammaCF :: (Floating a, Enum a) => a -> a -> Math.ContinuedFraction.CF a
 lowerGammaCF s z = gcf 0
     [ (p,q)
-    | p <- exp (s * log z - z)
+    | p <- pow_x_s_div_exp_x s z
         : interleave
             [negate spn * z | spn <- [s..]]
             [n * z   | n   <- [1..]]
@@ -84,14 +84,13 @@ qNeg s x = case properFraction s of
 upperGammaCF :: (Floating a, Enum a) => a -> a -> CF a
 upperGammaCF s z = gcf 0
     [ (p,q)
-    | p <- exp (log z * s - z)
+    | p <- pow_x_s_div_exp_x s z
         : zipWith (*) [1..] (iterate (subtract 1) (s-1))
     | q <- [n + z - s | n <- [1,3..]]
     ]
 
 
 ---- various utility functions ----
-
 
 -- |Special case of Kummer's confluent hypergeometric function, used
 -- in lower gamma functions.
@@ -101,11 +100,16 @@ upperGammaCF s z = gcf 0
 m_1_sp1 s z = converge . scanl (+) 0 . scanl (*) 1 $
     [z / x | x <- iterate (1+) (s+1)]
 
--- Only valid for infinite lists.  Only used in the following definitions of continued fractions.
+-- Only valid for infinite lists.  Only used in the above definitions of continued fractions.
 interleave (x:xs) (y:ys) = x:y:interleave xs ys
 
 -- A common subexpression appearing in both 'pCF' and 'qCF'.
 pow_x_s_div_gamma_s_div_exp_x s x 
     | x > 0     = exp (log x * s - x - lnGamma s)
     | otherwise = x ** s / (exp x * gamma s)
+
+-- The corresponding subexpression from 'lowerGammaCF' and 'upperGammaCF'
+pow_x_s_div_exp_x s x 
+    | x > 0     = exp (log x * s - x)
+    | otherwise = x ** s / exp x
 

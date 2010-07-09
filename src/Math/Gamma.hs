@@ -188,13 +188,15 @@ class Num a => Factorial a where
     factorial = fromInteger . factorial
 
 instance Factorial Integer where
-    factorial n = product [1..toInteger n]
+    factorial n
+        | n < 0     = error "factorial: n < 0"
+        | otherwise = product [1..toInteger n]
 
 instance Factorial Float where
     factorial = realToFrac . (factorial :: Integral a => a -> Double)
 instance Factorial Double where
     factorial n
-        | n < 0         = error "factorial: n < 0"
+        | n < 0         = 0/0
         | n < nFacs     = facs V.! fromIntegral n
         | otherwise     = infinity
         where
