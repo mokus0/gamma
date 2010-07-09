@@ -10,14 +10,14 @@ import Math.ContinuedFraction
 import Math.Sequence.Converge
 
 -- |Continued fraction representation of the lower incomplete gamma function.
-lowerGammaCF :: (Floating a, Enum a) => a -> a -> Math.ContinuedFraction.CF a
+lowerGammaCF :: (Floating a, Ord a) => a -> a -> Math.ContinuedFraction.CF a
 lowerGammaCF s z = gcf 0
     [ (p,q)
     | p <- pow_x_s_div_exp_x s z
         : interleave
-            [negate spn * z | spn <- [s..]]
-            [n * z   | n   <- [1..]]
-    | q <- [s..]
+            [negate spn * z | spn <- iterate (1+) s]
+            [n * z          | n   <- iterate (1+) 1]
+    | q <- iterate (1+) s
     ]
 
 -- |Lower incomplete gamma function, computed using Kummer's confluent
@@ -81,14 +81,32 @@ qNeg s x = case properFraction s of
     _               -> 0/0
 
 -- |Continued fraction representation of the upper incomplete gamma function.
-upperGammaCF :: (Floating a, Enum a) => a -> a -> CF a
+upperGammaCF :: (Floating a, Ord a) => a -> a -> CF a
 upperGammaCF s z = gcf 0
     [ (p,q)
     | p <- pow_x_s_div_exp_x s z
-        : zipWith (*) [1..] (iterate (subtract 1) (s-1))
-    | q <- [n + z - s | n <- [1,3..]]
+        : zipWith (*) (iterate (1+) 1) (iterate (subtract 1) (s-1))
+    | q <- [n + z - s | n <- iterate (2+) 1]
     ]
 
+-- |Natural logarithms of the convergents of the upper gamma function, 
+-- evaluated carefully to avoid overflow and underflow.
+lnUpperGammaConvergents :: Floating a => a -> a -> [a]
+lnUpperGammaConvergents s x = map (a -) (concat (eval theCF)) 
+    where 
+        evalSign (s,x) = log s + x
+        signLog x = (signum x, log (abs x))
+        addSignLog (xS,xL) (yS,yL) = (xS*yS, xL+yL)
+        negateSignLog (s,l) = (negate s, l)
+        
+        eval = map (map evalSign) . modifiedLentzWith signLog addSignLog negateSignLog 1e-30
+        
+        a = s * log x - x
+        theCF = gcf (x + 1 - s)
+            [ (p,q)
+            | p <- zipWith (*) (iterate (1+) 1) (iterate (subtract 1) (s-1))
+            | q <- [n + x - s | n <- iterate (2+) 3]
+            ]
 
 ---- various utility functions ----
 
