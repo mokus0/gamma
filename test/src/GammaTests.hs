@@ -10,9 +10,6 @@ import Test.Framework (testGroup, Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
--- instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
---     arbitrary = liftA2 (:+) arbitrary arbitrary
-
 eps :: RealFloat a => a
 eps = eps'
     where
