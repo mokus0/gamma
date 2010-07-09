@@ -43,15 +43,21 @@ incompleteGammaTests eps =
                  in all isSane [a,b,c] ==>
                     let ?eps = 2048*eps
                      in a ~= b+c || a-b ~= c || a-c ~= b
-            , testProperty "upperGamma _ 0" $ \s ->
+            , testProperty "x = 0" $ \s ->
                 let a = upperGamma s 0
                     b = gamma s
                  in all isSane [a,b] ==>
                     let ?eps = 512*eps
                      in a ~= b
-            , testProperty "upperGamma 1 _" $ \x ->
+            , testProperty "s = 1" $ \x ->
                 let ?eps = 256*eps
                  in x > 0 ==> upperGamma 1 x ~= exp (-x)
+            ]
+        , testGroup "lnUpperGamma"
+            [ testProperty "s = 1" $ \x ->
+                let a = lnUpperGamma 1 x
+                 in let ?eps = 1024 * eps
+                     in isSane a ==> a ~= (-x)
             ]
         , testGroup "lowerGamma"
             [ testProperty "increment s" $ \s x ->
