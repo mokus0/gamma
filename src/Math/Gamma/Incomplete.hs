@@ -65,7 +65,7 @@ pHypGeom s x
     = exp (s * log x - x - lnGamma (s+1)) * m_1_sp1 s x
 
 
--- |Continued fraction representtion of the regularized upper incomplete gamma function.
+-- |Continued fraction representation of the regularized upper incomplete gamma function.
 qCF :: (Gamma a, Ord a, Enum a) => a -> a -> CF a
 qCF s x = gcf 0
     [ (p,q)
@@ -80,7 +80,7 @@ qNeg s x = case properFraction s of
     (sI, 0) | s > 0 -> exp (-x) * sum (scanl (*) 1 [x / fromIntegral k | k <- [1 .. sI-1]])
     _               -> 0/0
 
--- |Continued fraction representtion of the upper incomplete gamma function.
+-- |Continued fraction representation of the upper incomplete gamma function.
 upperGammaCF :: (Floating a, Enum a) => a -> a -> CF a
 upperGammaCF s z = gcf 0
     [ (p,q)
