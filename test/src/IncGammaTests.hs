@@ -1,6 +1,7 @@
+{-# LANGUAGE ImplicitParams #-}
 module IncGammaTests where
 
-import GammaTests (eps, isSane)
+import GammaTests (eps, isSane, (~=))
 
 import Data.Complex
 import Math.Gamma
@@ -10,31 +11,55 @@ import Test.QuickCheck
 
 tests = 
     [ testGroup "incomplete gamma"
-        [ testGroup "Float"  (incompleteGammaTests (128 * eps :: Float))
-        , testGroup "Double" (incompleteGammaTests (512 * eps :: Double))
+        [ testGroup "Float"  (incompleteGammaTests (eps :: Float))
+        , testGroup "Double" (incompleteGammaTests (eps :: Double))
         ]
     ]
 
 incompleteGammaTests eps =
-    [ testProperty "lowerGamma + upperGamma" $ \s x ->
-        let a = lowerGamma s x
-            b = upperGamma s x
-            c = gamma s
-         in all isSane [a,b,c] 
-            ==> a+b ~= c
-             || a ~= c-b
-             || b ~= c-a
-    , testProperty "p + q" $ \s x ->
-        let a = p s x
-            b = q s x
-         in all isSane [a,b] 
-            ==> a+b ~= 1
-             || a   ~= 1-b
-             || b   ~= 1-a
-    ]
-    where
-        infix 4 ~=
-        x ~= y 
-            =  absErr <= eps
-            || absErr <= eps * min (abs x) (abs y)
-            where absErr = abs (x-y)
+    let ?mag = abs
+     in [ testProperty "lowerGamma + upperGamma" $ \s x ->
+            let a = lowerGamma s x
+                b = upperGamma s x
+                c = gamma s
+             in all isSane [a,b,c] ==> 
+                let ?eps = 512 * eps
+                 in  a+b ~= c
+                    || a ~= c-b
+                    || b ~= c-a
+        , testProperty "p + q" $ \s x ->
+            let a = p s x
+                b = q s x
+             in all isSane [a,b] ==>
+                let ?eps = 256 * eps
+                 in  a+b ~= 1
+                    || a ~= 1-b
+                    || b ~= 1-a
+        , testGroup "upperGamma"
+            [ testProperty "increment s" $ \s x ->
+                let a = upperGamma (s+1) x
+                    b = s * upperGamma s x
+                    c = x ** s * exp (-x)
+                 in all isSane [a,b,c] ==>
+                    let ?eps = 2048*eps
+                     in a ~= b+c || a-b ~= c || a-c ~= b
+            , testProperty "upperGamma _ 0" $ \s ->
+                let a = upperGamma s 0
+                    b = gamma s
+                 in all isSane [a,b] ==>
+                    let ?eps = 512*eps
+                     in a ~= b
+            , testProperty "upperGamma 1 _" $ \x ->
+                let ?eps = 256*eps
+                 in x > 0 ==> upperGamma 1 x ~= exp (-x)
+            ]
+        , testGroup "lowerGamma"
+            [ testProperty "increment s" $ \s x ->
+                let a = lowerGamma (s+1) x
+                    b = s * lowerGamma s x
+                    c = x ** s * exp (-x)
+                 in all isSane [a,b,c] ==>
+                    let ?eps = 2048*eps
+                     in a ~= b-c || a+c ~= b || b-a ~= c
+            ]
+        ]

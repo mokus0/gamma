@@ -1,5 +1,7 @@
-{-# LANGUAGE ForeignFunctionInterface, ImplicitParams #-}
+{-# LANGUAGE ImplicitParams #-}
 module GammaTests where
+
+import Reference
 
 import Control.Applicative
 import Data.Complex
@@ -7,9 +9,6 @@ import Math.Gamma
 import Test.Framework (testGroup, Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
-
-foreign import ccall "math.h lgamma" lgamma :: Double -> Double
-foreign import ccall "math.h tgamma" tgamma :: Double -> Double
 
 -- instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
 --     arbitrary = liftA2 (:+) arbitrary arbitrary
@@ -65,11 +64,24 @@ realGammaTests gamma =
             gamma_x = gamma x `asTypeOf` eps
          in x > 2 && isSane gamma_x
             ==> gam (floor x) <= gamma_x && gamma_x <= gam (ceiling x)
+    , testProperty "agrees with factorial" $ \(Positive x) ->
+        let gam x = fromInteger (product [1..x-1])
+            gamma_x = gamma (fromInteger x)
+         in isSane gamma_x ==> 
+            let ?eps = 16*eps in gam x ~= gamma_x
     , testProperty "agrees with C tgamma" $ \x ->
         let a = gamma x
             b = realToFrac (tgamma (realToFrac x))
          in isSane a ==> 
             let ?eps = 512*eps in a ~= b
+    , testProperty "agrees with reference implementation" $ \x ->
+        let a = gamma x
+         in isSane a ==> snd (err gamma x) <= 256*eps
+    , testProperty "monotone when x>2" $ \(Positive x) ->
+        let x' = x * (1+eps)
+            a = gamma x
+            b = gamma x'
+         in (x > 2) && (x <= x) && all isSane [a,b] ==> a <= b
     ]
 
 complexGammaTests gamma = 
@@ -89,8 +101,8 @@ gammaTests gamma real imag =
     [ testProperty "increment arg" $ \x ->
         let a = gamma x
             b = gamma (x + 1)
-            margin  | ?complex  = 8
-                    | otherwise = 4
+            margin  | ?complex  = 32
+                    | otherwise = 32
          in all (isSane . ?mag) [a,b,recip a, recip b]
             ==> ?mag (a - b/x) <= margin * (max 2 (1 + recip (?mag x))) * eps * ?mag a
              || ?mag (a*x - b) <= margin * (max 2 (1 +        ?mag x))  * eps * ?mag b
@@ -113,7 +125,7 @@ logGammaTests gamma lnGamma real imag =
         let gam = lnGamma (x+1)
          in real x > 0 && isSane (?mag gam)
             ==> 
-            let ?eps = 16 * eps
+            let ?eps = 32 * eps
              in gam - log x ~= lnGamma x
                 || gam ~= log x + lnGamma x
     , testProperty "reflect" $ \x ->
@@ -152,7 +164,8 @@ realLogGammaTests gamma lnGamma =
            in testProperty "agrees with C lgamma" $ \(NonNegative x) ->
             let a = lnGamma x
                 b = realToFrac (lgamma (realToFrac x))
-             in isSane a ==> a ~= b
+             in let ?eps = 512 * eps
+                 in isSane a ==> a ~= b
         ]
 
 complexLogGammaTests gamma lnGamma = 

@@ -12,8 +12,8 @@ homepage:               /dev/null
 
 category:               Math, Numerical
 synopsis:               Gamma function and related functions.
-description:            The gamma function, incomplete gamma functions,
-                        beta function, and factorials.
+description:            Approximations of the gamma function, incomplete gamma 
+                        functions, beta function, and factorials.
 
 tested-with:            GHC == 6.10.4,
                         GHC == 6.12.1, GHC == 6.12.3
@@ -31,7 +31,7 @@ Library
                         Math.Gamma.Incomplete
                         Math.Gamma.Stirling
                         Math.Gamma.Lanczos
-  build-depends:        base >= 3 && <5, 
-                        continued-fractions, 
-                        converge, 
+  build-depends:        base >= 3 && <5,
+                        continued-fractions >= 0.9.0.1,
+                        converge,
                         vector >= 0.5 && < 0.7
