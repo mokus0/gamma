@@ -162,30 +162,31 @@ instance Gamma (Complex Double) where
             facs        = V.map lnGamma (V.enumFromN 1 nFacs)
 
 
--- |Incomplete gamma functions.  Minimal definition is either 'p' or 'q', preferably both.
+-- |Incomplete gamma functions.
 class Gamma a => IncGamma a where
     -- |Lower gamma function: lowerGamma s x == integral from 0 to x of 
     -- @\t -> t**(s-1) * exp (negate t)@
     lowerGamma :: a -> a -> a
-    lowerGamma s x = exp (lnLowerGamma s x)
+    -- lowerGamma s x = exp (lnLowerGamma s x)
     -- |Natural log of lower gamma function
     lnLowerGamma :: a -> a -> a 
-    lnLowerGamma s x = lnGamma s + log (p s x)
+    -- lnLowerGamma s x = lnGamma s + log (p s x)
     -- |Regularized lower incomplete gamma function: lowerGamma z / gamma z
     p :: a -> a -> a
-    p s x = 1 - q s x
+    -- p s x = 1 - q s x
     
     -- |Upper gamma function: lowerGamma s x == integral from x to infinity of 
     -- @\t -> t**(s-1) * exp (negate t)@
     upperGamma :: a -> a -> a
-    upperGamma s x = exp (lnUpperGamma s x)
+    -- upperGamma s x = exp (lnUpperGamma s x)
     -- |Natural log of upper gamma function
     lnUpperGamma :: a -> a -> a
-    lnUpperGamma s x = lnGamma s + log (q s x)
+    -- lnUpperGamma s x = lnGamma s + log (q s x)
     -- |Regularized upper incomplete gamma function: upperGamma z / gamma z
     q :: a -> a -> a
-    q s x = 1 - p s x
+    -- q s x = 1 - p s x
 
+-- |This instance uses the Double instance.
 instance IncGamma Float where
     lowerGamma   s x = realToFrac $ (lowerGamma   :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
     lnLowerGamma s x = realToFrac $ (lnLowerGamma :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
@@ -194,15 +195,44 @@ instance IncGamma Float where
     upperGamma   s x = realToFrac $ (upperGamma   :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
     lnUpperGamma s x = realToFrac $ (lnUpperGamma :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
     q s x = realToFrac $ (q :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
+
+-- |I have not yet come up with a good strategy for evaluating these 
+-- functions for negative @x@.  They can be rather numerically unstable.
 instance IncGamma Double where
+    lowerGamma s x
+        | x < 0     = error "lowerGamma: x < 0 is not currently supported."
+        | x == 0    = 0
+        | x >= s+1  = gamma s - upperGamma s x
+        | otherwise = lowerGammaHypGeom s x
+    
+    upperGamma s x
+        | x < 0     = error "upperGamma: x < 0 is not currently supported."
+        | x == 0    = gamma s
+        | x < s+1   = q s x * lowerGamma s x
+        | otherwise = converge . concat
+            $ modifiedLentz 1e-30 (upperGammaCF s x)
+    
+    lnLowerGamma s x
+        | x < 0     = error "lnLowerGamma: x < 0 is not currently supported."
+        | x == 0    = log 0
+        | x >= s+1  = log (p s x) + lnGamma s
+        | otherwise = lnLowerGammaHypGeom s x
+    
+    lnUpperGamma s x
+        | x < 0     = error "lnUpperGamma: x < 0 is not currently supported."
+        | x == 0    = lnGamma s
+        | x < s+1   = log (q s x) + lnGamma s
+        | otherwise =
+            converge (lnUpperGammaConvergents s x)
+    
     p s x
-        | x < 0     = 1 - qNeg s x
+        | x < 0     = error "p: x < 0 is not currently supported."
         | x == 0    = 0
         | x >= s+1  = 1 - q s x
         | otherwise = pHypGeom s x
     
     q s x
-        | x < 0     = qNeg s x
+        | x < 0     = error "q: x < 0 is not currently supported."
         | x == 0    = 1
         | x < s+1   = 1 - p s x
         | otherwise =

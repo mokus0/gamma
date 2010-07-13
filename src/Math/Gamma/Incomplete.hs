@@ -1,8 +1,8 @@
 {-# LANGUAGE ParallelListComp #-}
 module Math.Gamma.Incomplete
     ( lowerGammaCF, pCF
-    , upperGammaCF, qCF, qNeg
-    , lowerGammaHypGeom, pHypGeom
+    , lowerGammaHypGeom, lnLowerGammaHypGeom, pHypGeom
+    , upperGammaCF, lnUpperGammaConvergents, qCF
     ) where
 
 import {-# SOURCE #-}  Math.Gamma
@@ -26,17 +26,22 @@ lowerGammaCF s z = gcf 0
 -- gamma(s,x) = x**s * exp (-x) / s * M(1; 1+s; x)
 -- 
 -- From Abramowitz & Stegun (6.5.12).
-lowerGammaHypGeom :: (Floating b, RealFrac b) => b -> b -> b
+--
+-- Recommended for use when x < s+1
+lowerGammaHypGeom :: Floating b => b -> b -> b
 lowerGammaHypGeom 0 0 = 0/0
-lowerGammaHypGeom s x = sign (exp (log (abs x) * s - x) / s * m_1_sp1 s x)
-        where
-            sign 
-                | x < 0 = case properFraction s of
-                    (sI, 0) | s < 0     -> const (0/0)
-                            | even sI   -> id 
-                            | otherwise -> negate
-                    _                   -> const (0/0)
-                | otherwise = id
+lowerGammaHypGeom s x = x ** s * exp (negate x) / s * m_1_sp1 s x
+
+-- |Natural logarithm of lower gamma function, based on the same identity as
+-- 'lowerGammaHypGeom' and evaluated carefully to avoid overflow and underflow.
+-- Recommended for use when x < s+1
+lnLowerGammaHypGeom :: Floating a => a -> a -> a
+lnLowerGammaHypGeom 0 0 = 0/0
+lnLowerGammaHypGeom s x 
+    = log ((signum x)**s * sign_m / signum s)
+    + s*log (abs x) - x - log (abs s) + log_m
+    where
+        (sign_m, log_m) = log_m_1_sp1 s x
 
 -- |Continued fraction representation of the regularized lower incomplete gamma function.
 pCF :: (Gamma a, Ord a, Enum a) => a -> a -> CF a
@@ -51,21 +56,23 @@ pCF s x = gcf 0
 
 -- |Regularized lower incomplete gamma function, computed using Kummer's
 -- confluent hypergeometric function.  Uses same identity as 'lowerGammaHypGeom'.
+-- 
+-- Recommended for use when x < s+1
 pHypGeom :: (Gamma a, Ord a) => a -> a -> a
 pHypGeom 0 0 = 0/0
 pHypGeom s x
     | s < 0
-    = sin (pi*s) / (-pi)
-    * exp (s * log x - x + lnGamma  (-s)) * m_1_sp1 s x
+    = signum x ** s * sin (pi*s) / (-pi)
+    * exp (s * log (abs x) - x + lnGamma  (-s)) * m_1_sp1 s x
 
     | s == 0 || x == 0
     = 0
 
     | otherwise
-    = exp (s * log x - x - lnGamma (s+1)) * m_1_sp1 s x
-
+    = signum x ** s * exp (s * log (abs x) - x - lnGamma (s+1)) * m_1_sp1 s x
 
 -- |Continued fraction representation of the regularized upper incomplete gamma function.
+-- Recommended for use when x >= s+1
 qCF :: (Gamma a, Ord a, Enum a) => a -> a -> CF a
 qCF s x = gcf 0
     [ (p,q)
@@ -74,13 +81,8 @@ qCF s x = gcf 0
     | q <- [n + x - s | n <- [1,3..]]
     ]
 
--- |Q(s,x) for real x < 0
-qNeg :: (RealFrac a, Floating b) => a -> b -> b
-qNeg s x = case properFraction s of
-    (sI, 0) | s > 0 -> exp (-x) * sum (scanl (*) 1 [x / fromIntegral k | k <- [1 .. sI-1]])
-    _               -> 0/0
-
 -- |Continued fraction representation of the upper incomplete gamma function.
+-- Recommended for use when x >= s+1
 upperGammaCF :: (Floating a, Ord a) => a -> a -> CF a
 upperGammaCF s z = gcf 0
     [ (p,q)
@@ -91,14 +93,10 @@ upperGammaCF s z = gcf 0
 
 -- |Natural logarithms of the convergents of the upper gamma function, 
 -- evaluated carefully to avoid overflow and underflow.
+-- Recommended for use when x >= s+1
 lnUpperGammaConvergents :: Floating a => a -> a -> [a]
 lnUpperGammaConvergents s x = map (a -) (concat (eval theCF)) 
     where 
-        evalSign (s,x) = log s + x
-        signLog x = (signum x, log (abs x))
-        addSignLog (xS,xL) (yS,yL) = (xS*yS, xL+yL)
-        negateSignLog (s,l) = (negate s, l)
-        
         eval = map (map evalSign) . modifiedLentzWith signLog addSignLog negateSignLog 1e-30
         
         a = s * log x - x
@@ -110,6 +108,11 @@ lnUpperGammaConvergents s x = map (a -) (concat (eval theCF))
 
 ---- various utility functions ----
 
+evalSign (s,x) = log s + x
+signLog x = (signum x, log (abs x))
+addSignLog (xS,xL) (yS,yL) = (xS*yS, xL+yL)
+negateSignLog (s,l) = (s, negate l)
+
 -- |Special case of Kummer's confluent hypergeometric function, used
 -- in lower gamma functions.
 -- 
@@ -118,8 +121,15 @@ lnUpperGammaConvergents s x = map (a -) (concat (eval theCF))
 m_1_sp1 s z = converge . scanl (+) 0 . scanl (*) 1 $
     [z / x | x <- iterate (1+) (s+1)]
 
--- Only valid for infinite lists.  Only used in the above definitions of continued fractions.
-interleave (x:xs) (y:ys) = x:y:interleave xs ys
+log_m_1_sp1 s z = converge (concat (log_m_1_sp1_convergents s z))
+
+log_m_1_sp1_convergents s z
+    = modifiedLentzWith signLog addSignLog negateSignLog 1e-30
+    $ sumPartialProducts (1:[z / x | x <- iterate (1+) (s+1)])
+
+interleave [] _ = []
+interleave _ [] = []
+interleave (x:xs) ys = x:interleave ys xs
 
 -- A common subexpression appearing in both 'pCF' and 'qCF'.
 pow_x_s_div_gamma_s_div_exp_x s x 

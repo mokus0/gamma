@@ -19,6 +19,7 @@ Executable gamma-tests
   hs-source-dirs:       src
   main-is:              Tests.hs
   build-depends:        base >= 3 && <5, 
+                        erf,
                         gamma,
                         numbers,
                         QuickCheck >= 2.1.1, 
