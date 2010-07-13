@@ -10,6 +10,16 @@ import Test.Framework (testGroup, Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+gammaSign x
+    | x > 0     = 1
+    | otherwise = case properFraction x of
+        (n, 0)              -> 0/0
+        (n, f)  | odd n     ->   1
+                | otherwise ->  -1
+gammaArg :: RealFrac a => a -> Bool
+gammaArg = not . isNaN . gammaSign
+gammaArgC z = imagPart z /= 0 || gammaArg (realPart z)
+
 eps :: RealFloat a => a
 eps = eps'
     where
@@ -79,6 +89,17 @@ realGammaTests gamma =
             a = gamma x
             b = gamma x'
          in (x > 2) && (x <= x) && all isSane [a,b] ==> a <= b
+    , testProperty "domain check" $ \x ->
+        let a = gamma x
+         in not (isInfinite a) ==>
+            isNaN a == not (gammaArg x)
+    , testProperty "sign check" $ \x ->
+        let a = gamma x; s = gammaSign x
+            signum' z@0 | isNegativeZero z  = -1
+                        | otherwise         = 1
+            signum' z = signum z
+         in gammaArg x && not (isInfinite a) ==>
+            signum' a == s
     ]
 
 complexGammaTests gamma = 

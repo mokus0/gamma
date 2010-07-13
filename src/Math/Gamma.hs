@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, TemplateHaskell #-}
 module Math.Gamma
     ( Gamma(..)
     , Factorial(..)
@@ -10,9 +10,10 @@ import Math.Gamma.Lanczos
 import Math.Gamma.Incomplete
 
 import Data.Complex
-import Data.List (sortBy)
+import Data.List (sortBy, findIndex)
 import Data.Ord (comparing)
 import qualified Data.Vector.Unboxed as V
+import Language.Haskell.TH (litE, Lit(IntegerL))
 import Math.ContinuedFraction
 import Math.Sequence.Converge
 
@@ -35,9 +36,25 @@ class Floating a => Gamma a where
     lnFactorial :: Integral b => b -> a
     lnFactorial n = lnGamma (fromIntegral n+1)
 
+floatGammaInfCutoff :: Double
+floatGammaInfCutoff = $( do
+        let Just cutoff = findIndex isInfinite (scanl (*) (1::Float) [1..])
+        litE (IntegerL (1 + toInteger cutoff))
+    )
+
 instance Gamma Float where
-    gamma = realToFrac . reflect (gammaLanczos g cs) . realToFrac
+    gamma = realToFrac . gam . realToFrac
         where
+            gam :: Double -> Double
+            gam x 
+                | x >= floatGammaInfCutoff  = 1/0
+                | otherwise = case properFraction x of
+                (n,0) | n < 1     -> 0/0
+                      | otherwise -> factorial (n-1)
+                _     | x < (-20) -> let s = pi / sin (pi * x)
+                                      in signum s * exp (log (abs s) - lnGamma (1-x))
+                      | otherwise -> reflect (gammaLanczos g cs) x
+            
             g :: Double
             g = pi
             cs = [1.0000000249904433,9.100643759042066,-4.3325519094475,
@@ -59,11 +76,21 @@ instance Gamma Float where
             nFacs       = 2000 -- limited only by time and space
             facs        = V.map lnGamma (V.enumFromN 1 nFacs)
 
+doubleGammaInfCutoff :: Double
+doubleGammaInfCutoff = $( do
+        let Just cutoff = findIndex isInfinite (scanl (*) (1::Double) [1..])
+        litE (IntegerL (1 + toInteger cutoff))
+    )
+
 instance Gamma Double where
-    gamma x = case properFraction x of
+    gamma x 
+        | x >= doubleGammaInfCutoff  = 1/0
+        | otherwise = case properFraction x of
         (n,0) | n < 1     -> 0/0
               | otherwise -> factorial (n-1)
-        _     -> reflect (gammaLanczos g cs) x
+        _     | x < (-50) -> let s = pi / sin (pi * x)
+                              in signum s * exp (log (abs s) - lnGamma (1-x))
+              | otherwise -> reflect (gammaLanczos g cs) x
         where
             g = 2*pi
             cs = [9.99999999999985803099845245112243194630609100328127e-1,3.11601175054147181416018805783854078966968054820574e2,-4.98651190460363940327267435809982353665915898566851e2,2.44084728999768763967887353973264446808195804052725e2,-3.86703646430741942964006117268082794993800219289745e1,1.33509001013705483157804869520994460219627829058483e0,-1.89772218995656823839469050681023636391151679063349e-3,8.47526461434914856885138928027675324645466808374844e-7,2.59715567376858005948233185894865034384724173599575e-7,-2.71664378506075157744515910362825103696629060955620e-7,6.15111480613629944231662042128164100055404439541778e-8]
