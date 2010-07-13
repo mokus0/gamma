@@ -12,6 +12,7 @@ import Math.Gamma.Incomplete
 import Data.Complex
 import Data.List (sortBy, findIndex)
 import Data.Ord (comparing)
+import GHC.Float (float2Double, double2Float)
 import qualified Data.Vector.Unboxed as V
 import Language.Haskell.TH (litE, Lit(IntegerL))
 import Math.ContinuedFraction
@@ -43,9 +44,8 @@ floatGammaInfCutoff = $( do
     )
 
 instance Gamma Float where
-    gamma = realToFrac . gam . realToFrac
+    gamma = double2Float . gam . float2Double
         where
-            gam :: Double -> Double
             gam x 
                 | x >= floatGammaInfCutoff  = 1/0
                 | otherwise = case properFraction x of
@@ -55,14 +55,12 @@ instance Gamma Float where
                                       in signum s * exp (log (abs s) - lnGamma (1-x))
                       | otherwise -> reflect (gammaLanczos g cs) x
             
-            g :: Double
             g = pi
             cs = [1.0000000249904433,9.100643759042066,-4.3325519094475,
                   0.12502459858901147,1.1378929685052916e-4,-9.555011214455924e-5]
     
-    lnGamma = realToFrac . reflectLn (lnGammaLanczos g cs) . realToFrac
+    lnGamma = double2Float . reflectLn (lnGammaLanczos g cs) . float2Double
         where
-            g :: Double
             g = pi
             cs = [1.0000000249904433,9.100643759042066,-4.3325519094475,
                   0.12502459858901147,1.1378929685052916e-4,-9.555011214455924e-5]
@@ -89,7 +87,7 @@ instance Gamma Double where
         (n,0) | n < 1     -> 0/0
               | otherwise -> factorial (n-1)
         _     | x < (-50) -> let s = pi / sin (pi * x)
-                              in signum s * exp (log (abs s) - lnGamma (1-x))
+                              in signum s * exp (log (abs s) - lnGammaLanczos g cs (1-x))
               | otherwise -> reflect (gammaLanczos g cs) x
         where
             g = 2*pi
@@ -114,9 +112,9 @@ instance Gamma Double where
             facs        = V.map lnGamma (V.enumFromN 1 nFacs)
 
 complexDoubleToFloat :: Complex Double -> Complex Float
-complexDoubleToFloat (a :+ b) = realToFrac a :+ realToFrac b
+complexDoubleToFloat (a :+ b) = double2Float a :+ double2Float b
 complexFloatToDouble :: Complex Float -> Complex Double
-complexFloatToDouble (a :+ b) = realToFrac a :+ realToFrac b
+complexFloatToDouble (a :+ b) = float2Double a :+ float2Double b
 
 instance Gamma (Complex Float) where
     gamma = complexDoubleToFloat . gamma . complexFloatToDouble
@@ -188,13 +186,13 @@ class Gamma a => IncGamma a where
 
 -- |This instance uses the Double instance.
 instance IncGamma Float where
-    lowerGamma   s x = realToFrac $ (lowerGamma   :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
-    lnLowerGamma s x = realToFrac $ (lnLowerGamma :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
-    p s x = realToFrac $ (p :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
+    lowerGamma   s x = double2Float $ (lowerGamma   :: Double -> Double -> Double) (float2Double s) (float2Double x)
+    lnLowerGamma s x = double2Float $ (lnLowerGamma :: Double -> Double -> Double) (float2Double s) (float2Double x)
+    p s x = double2Float $ (p :: Double -> Double -> Double) (float2Double s) (float2Double x)
     
-    upperGamma   s x = realToFrac $ (upperGamma   :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
-    lnUpperGamma s x = realToFrac $ (lnUpperGamma :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
-    q s x = realToFrac $ (q :: Double -> Double -> Double) (realToFrac s) (realToFrac x)
+    upperGamma   s x = double2Float $ (upperGamma   :: Double -> Double -> Double) (float2Double s) (float2Double x)
+    lnUpperGamma s x = double2Float $ (lnUpperGamma :: Double -> Double -> Double) (float2Double s) (float2Double x)
+    q s x = double2Float $ (q :: Double -> Double -> Double) (float2Double s) (float2Double x)
 
 -- |I have not yet come up with a good strategy for evaluating these 
 -- functions for negative @x@.  They can be rather numerically unstable.
@@ -250,7 +248,7 @@ instance Factorial Integer where
         | otherwise = product [1..toInteger n]
 
 instance Factorial Float where
-    factorial = realToFrac . (factorial :: Integral a => a -> Double)
+    factorial = double2Float . factorial
 instance Factorial Double where
     factorial n
         | n < 0         = 0/0
