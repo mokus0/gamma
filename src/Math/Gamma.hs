@@ -169,7 +169,7 @@ class Gamma a => IncGamma a where
     -- |Natural log of lower gamma function
     lnLowerGamma :: a -> a -> a 
     -- lnLowerGamma s x = lnGamma s + log (p s x)
-    -- |Regularized lower incomplete gamma function: lowerGamma z / gamma z
+    -- |Regularized lower incomplete gamma function: lowerGamma s x / gamma s
     p :: a -> a -> a
     -- p s x = 1 - q s x
     
@@ -180,7 +180,7 @@ class Gamma a => IncGamma a where
     -- |Natural log of upper gamma function
     lnUpperGamma :: a -> a -> a
     -- lnUpperGamma s x = lnGamma s + log (q s x)
-    -- |Regularized upper incomplete gamma function: upperGamma z / gamma z
+    -- |Regularized upper incomplete gamma function: upperGamma s x / gamma s
     q :: a -> a -> a
     -- q s x = 1 - p s x
 
@@ -206,7 +206,7 @@ instance IncGamma Double where
     upperGamma s x
         | x < 0     = error "upperGamma: x < 0 is not currently supported."
         | x == 0    = gamma s
-        | x < s+1   = q s x * lowerGamma s x
+        | x < s+1   = q s x * gamma s
         | otherwise = converge . concat
             $ modifiedLentz 1e-30 (upperGammaCF s x)
     
