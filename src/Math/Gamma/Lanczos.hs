@@ -1,6 +1,6 @@
 {-# LANGUAGE ParallelListComp #-}
 -- |Lanczos' approximation to the gamma function, as described at
--- http://en.wikipedia.org/wiki/Lanczos_approximation
+-- http:\/\/en.wikipedia.org\/wiki\/Lanczos_approximation
 -- (fetched 11 June 2010).
 -- 
 -- Constants to be supplied by user.  There is a file \"extras/LanczosConstants.hs\"
