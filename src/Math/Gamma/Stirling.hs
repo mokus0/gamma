@@ -17,9 +17,9 @@ lnGammaStirling cs z = (z - 0.5) * log z - z + 0.5 * log (2*pi) + sum [c / q | c
 {-# INLINE risingPowers #-}
 risingPowers x = scanl1 (*) (iterate (1+) x)
 
--- |The c_n series in the convergent version of stirling's approximation given
+-- |The c_n series in the convergent version of Stirling's approximation given
 -- on wikipedia at
--- http://en.wikipedia.org/wiki/Stirling%27s_approximation#A_convergent_version_of_Stirling.27s_formula
+-- http:\/\/en.wikipedia.org\/wiki\/Stirling%27s_approximation#A_convergent_version_of_Stirling.27s_formula
 -- as fetched on 11 June 2010.
 cs :: (Fractional a, Ord a) => [a]
 cs = map c [1..]
