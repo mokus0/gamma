@@ -1,5 +1,5 @@
 name:                   gamma
-version:                0.7
+version:                0.7.0.1
 stability:              provisional
 
 cabal-version:          >= 1.6
@@ -35,4 +35,4 @@ Library
                         continued-fractions >= 0.9.1,
                         converge,
                         template-haskell,
-                        vector >= 0.5 && < 0.7
+                        vector >= 0.5 && < 0.8
