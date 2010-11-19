@@ -16,7 +16,8 @@ description:            Approximations of the gamma function, incomplete gamma
                         functions, beta function, and factorials.
 
 tested-with:            GHC == 6.10.4,
-                        GHC == 6.12.1, GHC == 6.12.3
+                        GHC == 6.12.1, GHC == 6.12.3,
+                        GHC == 7.0.1
 
 extra-source-files:     extras/*.hs
 
