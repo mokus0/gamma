@@ -8,7 +8,7 @@ build-type:             Simple
 author:                 James Cook <mokus@deepbondi.net>
 maintainer:             James Cook <mokus@deepbondi.net>
 license:                PublicDomain
-homepage:               /dev/null
+homepage:               https://github.com/mokus0/gamma
 
 category:               Math, Numerical
 synopsis:               Gamma function and related functions.
@@ -22,8 +22,8 @@ tested-with:            GHC == 6.10.4,
 extra-source-files:     extras/*.hs
 
 source-repository head
-  type: darcs
-  location: http://code.haskell.org/~mokus/gamma
+  type: git
+  location: git://github.com/mokus0/gamma.git
 
 
 Library
