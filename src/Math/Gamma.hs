@@ -8,10 +8,10 @@ module Math.Gamma
 
 import Math.Gamma.Lanczos
 import Math.Gamma.Incomplete
+import Math.Factorial
 
 import Data.Complex
-import Data.List (sortBy, findIndex)
-import Data.Ord (comparing)
+import Data.List (findIndex)
 import GHC.Float (float2Double, double2Float)
 import qualified Data.Vector.Unboxed as V
 import Language.Haskell.TH (litE, Lit(IntegerL))
@@ -19,7 +19,7 @@ import Math.ContinuedFraction
 import Math.Sequence.Converge
 
 -- |Gamma function.  Minimal definition is ether 'gamma' or 'lnGamma'.
-class Floating a => Gamma a where
+class (Floating a, Factorial a) => Gamma a where
     -- |The gamma function:  gamma z == integral from 0 to infinity of
     -- @\t -> t**(z-1) * exp (negate t)@
     gamma :: a -> a
@@ -50,7 +50,7 @@ instance Gamma Float where
                 | x >= floatGammaInfCutoff  = 1/0
                 | otherwise = case properFraction x of
                 (n,0) | n < 1     -> 0/0
-                      | otherwise -> factorial (n-1)
+                      | otherwise -> factorial (n-1 :: Integer)
                 _     | x < (-20) -> let s = pi / sin (pi * x)
                                       in signum s * exp (log (abs s) - lnGamma (1-x))
                       | otherwise -> reflect (gammaLanczos g cs) x
@@ -95,7 +95,7 @@ instance Gamma Double where
         | x >= doubleGammaInfCutoff  = 1/0
         | otherwise = case properFraction x of
         (n,0) | n < 1     -> 0/0
-              | otherwise -> factorial (n-1)
+              | otherwise -> factorial (n-1 :: Integer)
         _     | x < (-50) -> let s = pi / sin (pi * x)
                               in signum s * exp (log (abs s) - lnGammaLanczos g cs (1-x))
               | otherwise -> reflect (gammaLanczos g cs) x
@@ -147,16 +147,6 @@ complexFloatToDouble (a :+ b) = float2Double a :+ float2Double b
 
 instance Gamma (Complex Float) where
     gamma = complexDoubleToFloat . gamma . complexFloatToDouble
-        where
-            g = pi
-            cs = [ 1.0000000249904433
-                 , 9.100643759042066
-                 ,-4.3325519094475
-                 , 0.12502459858901147
-                 , 1.1378929685052916e-4
-                 ,-9.555011214455924e-5
-                 ]
-    
     lnGamma = complexDoubleToFloat . reflectLnC (lnGammaLanczos g cs) . complexFloatToDouble
         where
             g = pi
@@ -295,29 +285,6 @@ instance IncGamma Double where
         | otherwise =
             converge . concat
             $ modifiedLentz 1e-30 (qCF s x)
-
--- |Factorial function
-class Num a => Factorial a where
-    factorial :: Integral b => b -> a
-    factorial = fromInteger . factorial
-
-instance Factorial Integer where
-    factorial n
-        | n < 0     = error "factorial: n < 0"
-        | otherwise = product [1..toInteger n]
-
-instance Factorial Float where
-    factorial = double2Float . factorial
-instance Factorial Double where
-    factorial n
-        | n < 0         = 0/0
-        | n < nFacs     = facs V.! fromIntegral n
-        | otherwise     = infinity
-        where
-            nFacs :: Num a => a
-            nFacs       = 171 -- any more is pointless, everything beyond here is "Infinity"
-            facs        = V.scanl (*) 1 (V.enumFromN 1 nFacs)
-            infinity    = facs V.! nFacs
 
 -- |The beta function: @beta z w@ == @gamma z * gamma w / gamma (z+w)@
 beta :: Gamma a => a -> a -> a

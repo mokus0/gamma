@@ -1,6 +1,8 @@
 module Math.Gamma where
 
-class Floating a => Gamma a where
+import Math.Factorial
+
+class (Floating a, Factorial a) => Gamma a where
     -- |The gamma function:  gamma z == integral from 0 to infinity of
     -- @\t -> t**(z-1) * exp (negate t)@
     gamma :: a -> a

@@ -42,18 +42,22 @@ lnGammaLanczos g cs zp1
         z = zp1 - 1
 
 {-# INLINE a #-}
-a [] z = error "Math.Gamma.Lanczos.a: empty coefficient list"
+a :: Fractional t => [t] -> t -> t
+a [] _ = error "Math.Gamma.Lanczos.a: empty coefficient list"
 a cs z = head cs + sum [c / (z + k) | c <- tail cs | k <- iterate (1+) 1]
+
+fractionalPart :: RealFloat a => a -> a
+fractionalPart x = case properFraction x of
+    (i,f) -> let _ = i :: Int in f
 
 -- |Extend an approximation of the gamma function from the domain x > 0.5 to
 -- the whole real line.
 {-# INLINE reflect #-}
 reflect :: (RealFloat a, Ord a) => (a -> a) -> a -> a
 reflect gamma z
-    | z > 0.5   = gamma z
-    | otherwise = case properFraction z of
-        (_,0)   -> 0/0
-        _       -> pi / (sin (pi * z) * gamma (1-z))
+    | z > 0.5               = gamma z
+    | fractionalPart z == 0 = 0
+    | otherwise             = pi / (sin (pi * z) * gamma (1-z))
 
 -- |Extend an approximation of the gamma function from the domain Re(x) > 0.5
 -- to the whole complex plane.
@@ -62,7 +66,7 @@ reflectC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
 reflectC gamma z
     | realPart z > 0.5  = gamma z
     | imagPart z == 0
-    && snd (properFraction (realPart z)) == 0
+    && fractionalPart (realPart z) == 0
                         = 0/0
     | otherwise         = pi / (sin (pi * z) * gamma (1-z))
 
@@ -71,10 +75,9 @@ reflectC gamma z
 {-# INLINE reflectLn #-}
 reflectLn :: (RealFloat a, Ord a) => (a -> a) -> a -> a
 reflectLn lnGamma z
-    | z > 0.5   = lnGamma z
-    | otherwise = case properFraction z of
-        (_,0) -> log (0/0)
-        _     -> log pi - log (sin (pi * z)) - lnGamma (1-z)
+    | z > 0.5               = lnGamma z
+    | fractionalPart z == 0 = log (0/0)
+    | otherwise             = log pi - log (sin (pi * z)) - lnGamma (1-z)
 
 -- |Extend an approximation of the natural logarithm of the gamma function 
 -- from the domain Re(x) > 0.5 to the whole complex plane.
@@ -83,7 +86,7 @@ reflectLnC :: RealFloat a => (Complex a -> Complex a) -> Complex a -> Complex a
 reflectLnC lnGamma z
     | realPart z > 0.5  = lnGamma z
     | imagPart z == 0
-    && snd (properFraction (realPart z)) == 0
+    && fractionalPart (realPart z) == 0
                         = log (0/0)
     | otherwise = log pi - log (sin (pi * z)) - lnGamma (1-z)
 

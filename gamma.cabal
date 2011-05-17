@@ -1,5 +1,5 @@
 name:                   gamma
-version:                0.7.0.1
+version:                0.8
 stability:              provisional
 
 cabal-version:          >= 1.6
@@ -28,7 +28,9 @@ source-repository head
 
 Library
   hs-source-dirs:       src
-  exposed-modules:      Math.Gamma
+  ghc-options:          -Wall
+  exposed-modules:      Math.Factorial
+                        Math.Gamma
                         Math.Gamma.Incomplete
                         Math.Gamma.Stirling
                         Math.Gamma.Lanczos

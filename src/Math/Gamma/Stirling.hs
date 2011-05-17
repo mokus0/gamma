@@ -11,11 +11,15 @@ import qualified Data.Vector as V
 -- length of which will determine the accuracy achieved.)
 {-# INLINE lnGammaStirling #-}
 lnGammaStirling :: Floating a => [a] -> a -> a
-lnGammaStirling cs z = (z - 0.5) * log z - z + 0.5 * log (2*pi) + sum [c / q | c <- cs | q <- risingPowers (z+1)]
-    where
+lnGammaStirling ks z 
+    = (z - 0.5) * log z 
+    - z 
+    + 0.5 * log (2*pi) 
+    + sum (zipWith (/) ks (risingPowers (z+1)))
 
 {-# INLINE risingPowers #-}
-risingPowers x = scanl1 (*) (iterate (1+) x)
+risingPowers :: Num a => a -> [a]
+risingPowers = scanl1 (*) . iterate (1+)
 
 -- |The c_n series in the convergent version of Stirling's approximation given
 -- on wikipedia at
@@ -34,17 +38,17 @@ s n k
     | n < 0     = error "s n k: n < 0"
     | k < 0     = error "s n k: k < 0"
     | k > n     = error "s n k: k > n"
-    | otherwise = s n k
+    | otherwise = s' n k
     
     where
-        table = [V.generate (n+1) $ \k -> s n k | n <- [0..]]
-        s 0 0 = 1
-        s _ 0 = 0
-        s n k 
-            | n == k    = 1
-            | otherwise = s (n-1) (k-1) - (toInteger n-1) * s (n-1) k
+        table = [V.generate (i+1) $ s' i | i <- [0..]]
+        s' 0 0 = 1
+        s' _ 0 = 0
+        s' n' k'
+            | n' == k'  = 1
+            | otherwise = s'' (n'-1) (k'-1) - (toInteger n'-1) * s'' (n'-1) k'
             where
-                s n k = table !! n V.! k
+                s'' n'' k'' = table !! n'' V.! k''
 
 -- |The (unsigned) Stirling numbers of the first kind.
 abs_s :: Int -> Int -> Integer
@@ -52,17 +56,17 @@ abs_s n k
     | n < 0     = error "abs_s n k: n < 0"
     | k < 0     = error "abs_s n k: k < 0"
     | k > n     = error "abs_s n k: k > n"
-    | otherwise = abs_s n k
+    | otherwise = abs_s' n k
     
     where
-        table = [V.generate (n+1) $ \k -> abs_s n k | n <- [0..]]
-        abs_s 0 0 = 1
-        abs_s _ 0 = 0
-        abs_s n k 
-            | n == k    = 1
-            | otherwise = abs_s (n-1) (k-1) + (toInteger n-1) * abs_s (n-1) k
+        table = [V.generate (n''+1) $ \k'' -> abs_s' n'' k'' | n'' <- [0..]]
+        abs_s' 0 0 = 1
+        abs_s' _ 0 = 0
+        abs_s' n' k'
+            | n' == k'  = 1
+            | otherwise = abs_s'' (n'-1) (k'-1) + (toInteger n'-1) * abs_s'' (n'-1) k'
             where
-                abs_s n k = table !! n V.! k
+                abs_s'' n'' k'' = table !! n'' V.! k''
 
 -- |Compute the number of terms required to achieve a given precision for a
 -- given value of z.  The mamimum will typically (always?) be around 1, and 
@@ -70,12 +74,15 @@ abs_s n k
 -- of the machine epsilon - essentially, near zero I think this method is
 -- extremely numerically unstable).
 terms :: (Num t, Floating a, Ord a) => a -> a -> t
-terms prec z = converge (eps z) (f z)
+terms prec z = stepsNeeded (eps z) (f z)
     where
         cs' = cs
-        f z = scanl1 (+) [c / q | c <- cs' | q <- risingPowers (z+1)]
+        f x = scanl1 (+) (zipWith (/) cs' (risingPowers (x+1)))
         -- (eps is 0 at z=0.86639115674955 and z=2.087930091329227)
-        eps z = prec * abs ((z - 0.5) * log z - z + 0.5 * log (2*pi))
-        converge eps xs = go 1 xs where go n (x:y:zs) | abs(x-y)<=eps = n | otherwise = go (n+1) (y:zs)
-
-f z = scanl1 (+) [c / q | c <- cs | q <- risingPowers (z+1)]
+        eps x = prec * abs ((x - 0.5) * log x - x + 0.5 * log (2*pi))
+        stepsNeeded e xs = go 1 xs
+            where
+                go n (x:y:zs)
+                    | abs(x-y)<=e = n
+                    | otherwise = go (n+1) (y:zs)
+                go n _ = n -- this case should be impossible

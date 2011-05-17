@@ -108,9 +108,16 @@ lnUpperGammaConvergents s x = map (a -) (concat (eval theCF))
 
 ---- various utility functions ----
 
+evalSign :: Floating a => (a,a) -> a
 evalSign (s,x) = log s + x
+
+signLog :: Floating a => a -> (a,a)
 signLog x = (signum x, log (abs x))
+
+addSignLog :: (Num a, Num b) => (a,b) -> (a,b) -> (a,b)
 addSignLog (xS,xL) (yS,yL) = (xS*yS, xL+yL)
+
+negateSignLog :: (Num b) => (a,b) -> (a,b)
 negateSignLog (s,l) = (s, negate l)
 
 -- |Special case of Kummer's confluent hypergeometric function, used
@@ -118,25 +125,31 @@ negateSignLog (s,l) = (s, negate l)
 -- 
 -- m_1_sp1 s z = M(1;s+1;z)
 -- 
+m_1_sp1 :: Fractional a => a -> a -> a
 m_1_sp1 s z = converge . scanl (+) 0 . scanl (*) 1 $
     [z / x | x <- iterate (1+) (s+1)]
 
+log_m_1_sp1 :: Floating a => a -> a -> (a,a)
 log_m_1_sp1 s z = converge (concat (log_m_1_sp1_convergents s z))
 
+log_m_1_sp1_convergents :: Floating a => a -> a -> [[(a,a)]]
 log_m_1_sp1_convergents s z
     = modifiedLentzWith signLog addSignLog negateSignLog 1e-30
     $ sumPartialProducts (1:[z / x | x <- iterate (1+) (s+1)])
 
+interleave :: [a] -> [a] -> [a]
 interleave [] _ = []
 interleave _ [] = []
 interleave (x:xs) ys = x:interleave ys xs
 
 -- A common subexpression appearing in both 'pCF' and 'qCF'.
+pow_x_s_div_gamma_s_div_exp_x :: (Gamma a, Ord a) => a -> a -> a
 pow_x_s_div_gamma_s_div_exp_x s x 
     | x > 0     = exp (log x * s - x - lnGamma s)
     | otherwise = x ** s / (exp x * gamma s)
 
 -- The corresponding subexpression from 'lowerGammaCF' and 'upperGammaCF'
+pow_x_s_div_exp_x :: (Floating a, Ord a) => a -> a -> a
 pow_x_s_div_exp_x s x 
     | x > 0     = exp (log x * s - x)
     | otherwise = x ** s / exp x
