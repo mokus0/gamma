@@ -3,7 +3,6 @@ module Math.Gamma
     ( Gamma(..)
     , Factorial(..)
     , IncGamma(..)
-    , beta
     ) where
 
 import Math.Gamma.Lanczos
@@ -286,6 +285,3 @@ instance IncGamma Double where
             converge . concat
             $ modifiedLentz 1e-30 (qCF s x)
 
--- |The beta function: @beta z w@ == @gamma z * gamma w / gamma (z+w)@
-beta :: Gamma a => a -> a -> a
-beta z w = exp (lnGamma z + lnGamma w - lnGamma (z+w))
