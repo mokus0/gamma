@@ -18,7 +18,7 @@ import Math.ContinuedFraction
 import Math.Sequence.Converge
 
 -- |Gamma function.  Minimal definition is ether 'gamma' or 'lnGamma'.
-class (Floating a, Factorial a) => Gamma a where
+class (Eq a, Floating a, Factorial a) => Gamma a where
     -- |The gamma function:  gamma z == integral from 0 to infinity of
     -- @\t -> t**(z-1) * exp (negate t)@
     gamma :: a -> a

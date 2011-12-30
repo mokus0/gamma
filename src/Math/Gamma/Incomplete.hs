@@ -28,14 +28,14 @@ lowerGammaCF s z = gcf 0
 -- From Abramowitz & Stegun (6.5.12).
 --
 -- Recommended for use when x < s+1
-lowerGammaHypGeom :: Floating b => b -> b -> b
+lowerGammaHypGeom :: (Eq b, Floating b) => b -> b -> b
 lowerGammaHypGeom 0 0 = 0/0
 lowerGammaHypGeom s x = x ** s * exp (negate x) / s * m_1_sp1 s x
 
 -- |Natural logarithm of lower gamma function, based on the same identity as
 -- 'lowerGammaHypGeom' and evaluated carefully to avoid overflow and underflow.
 -- Recommended for use when x < s+1
-lnLowerGammaHypGeom :: Floating a => a -> a -> a
+lnLowerGammaHypGeom :: (Eq a, Floating a) => a -> a -> a
 lnLowerGammaHypGeom 0 0 = 0/0
 lnLowerGammaHypGeom s x 
     = log ((signum x)**s * sign_m / signum s)
@@ -94,7 +94,7 @@ upperGammaCF s z = gcf 0
 -- |Natural logarithms of the convergents of the upper gamma function, 
 -- evaluated carefully to avoid overflow and underflow.
 -- Recommended for use when x >= s+1
-lnUpperGammaConvergents :: Floating a => a -> a -> [a]
+lnUpperGammaConvergents :: (Eq a, Floating a) => a -> a -> [a]
 lnUpperGammaConvergents s x = map (a -) (concat (eval theCF)) 
     where 
         eval = map (map evalSign) . modifiedLentzWith signLog addSignLog negateSignLog 1e-30
@@ -125,14 +125,14 @@ negateSignLog (s,l) = (s, negate l)
 -- 
 -- m_1_sp1 s z = M(1;s+1;z)
 -- 
-m_1_sp1 :: Fractional a => a -> a -> a
+m_1_sp1 :: (Eq a, Fractional a) => a -> a -> a
 m_1_sp1 s z = converge . scanl (+) 0 . scanl (*) 1 $
     [z / x | x <- iterate (1+) (s+1)]
 
-log_m_1_sp1 :: Floating a => a -> a -> (a,a)
+log_m_1_sp1 :: (Eq a, Floating a) => a -> a -> (a,a)
 log_m_1_sp1 s z = converge (concat (log_m_1_sp1_convergents s z))
 
-log_m_1_sp1_convergents :: Floating a => a -> a -> [[(a,a)]]
+log_m_1_sp1_convergents :: (Eq a, Floating a) => a -> a -> [[(a,a)]]
 log_m_1_sp1_convergents s z
     = modifiedLentzWith signLog addSignLog negateSignLog 1e-30
     $ sumPartialProducts (1:[z / x | x <- iterate (1+) (s+1)])
