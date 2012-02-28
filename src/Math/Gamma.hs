@@ -302,10 +302,12 @@ instance GenGamma Float where
 
 instance GenGamma Double where
     generalizedGamma p x
+        | p <= 0    = error "generalizedGamma p x: p must be strictly positive."
         | p == 1    = gamma x
         | otherwise = (pi ** ((p - 1) / 2 )) * gamma x * generalizedGamma (p - 1) (x - 0.5)
 
     lnGeneralizedGamma p x
+        | p <= 0    = error "lnGeneralizedGamma p x: p must be strictly positive."
         | p == 1    = lnGamma x
         | otherwise = log (pi ** ((p - 1) / 2)) + lnGamma x + lnGeneralizedGamma (p - 1) (x - 0.5)
 
