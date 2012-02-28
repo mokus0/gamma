@@ -3,6 +3,7 @@ module Math.Gamma
     ( Gamma(..)
     , Factorial(..)
     , IncGamma(..)
+    , GenGamma(..)
     ) where
 
 import Math.Gamma.Lanczos
