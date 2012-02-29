@@ -295,7 +295,6 @@ class Gamma a => GenGamma a where
     -- |Natural log of generalizedGamma
     lnGeneralizedGamma :: a -> a -> a
 
--- |This instance uses the Double instance.
 instance GenGamma Float where
     generalizedGamma p x   = double2Float $ (generalizedGamma :: Double -> Double -> Double) (float2Double p) (float2Double x)
     lnGeneralizedGamma p x = double2Float $ (generalizedGamma :: Double -> Double -> Double) (float2Double p) (float2Double x)
