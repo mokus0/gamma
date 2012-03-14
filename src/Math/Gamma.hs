@@ -3,6 +3,7 @@ module Math.Gamma
     ( Gamma(..)
     , Factorial(..)
     , IncGamma(..)
+    , GenGamma(..)
     ) where
 
 import Math.Gamma.Lanczos
@@ -284,4 +285,30 @@ instance IncGamma Double where
         | otherwise =
             converge . concat
             $ modifiedLentz 1e-30 (qCF s x)
+
+-- |Generalized gamma function (also known as multivariate gamma function).
+-- See http://en.wikipedia.org/wiki/Multivariate_gamma_function
+-- (Fetched Feb 29, 2012).
+class Gamma a => GenGamma a where
+    -- |Generalized gamma function.  generalizedGamma p x = (pi ** ((p - 1) / 2)) * gamma x * generalizedGamma (p - 1) (x - 0.5)
+    generalizedGamma :: Int -> a -> a
+    -- |Natural log of generalizedGamma
+    lnGeneralizedGamma :: Int -> a -> a
+
+instance GenGamma Float where
+    generalizedGamma   p x = double2Float $ (generalizedGamma   :: Int -> Double -> Double) p (float2Double x)
+    lnGeneralizedGamma p x = double2Float $ (lnGeneralizedGamma :: Int -> Double -> Double) p (float2Double x)
+
+instance GenGamma Double where
+    generalizedGamma p x
+        | p <= 0    = error "generalizedGamma p x: p must be strictly positive."
+        | p == 1    = gamma x
+        | otherwise = (pi ** ((p' - 1) / 2 )) * gamma x * generalizedGamma (p - 1) (x - 0.5)
+        where p' = fromIntegral p
+
+    lnGeneralizedGamma p x
+        | p <= 0    = error "lnGeneralizedGamma p x: p must be strictly positive."
+        | p == 1    = lnGamma x
+        | otherwise = log (pi ** ((p' - 1) / 2)) + lnGamma x + lnGeneralizedGamma (p - 1) (x - 0.5)
+        where p' = fromIntegral p
 
