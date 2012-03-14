@@ -291,22 +291,24 @@ instance IncGamma Double where
 -- (Fetched Feb 29, 2012).
 class Gamma a => GenGamma a where
     -- |Generalized gamma function.  generalizedGamma p x = (pi ** ((p - 1) / 2)) * gamma x * generalizedGamma (p - 1) (x - 0.5)
-    generalizedGamma :: a -> a -> a
+    generalizedGamma :: Int -> a -> a
     -- |Natural log of generalizedGamma
-    lnGeneralizedGamma :: a -> a -> a
+    lnGeneralizedGamma :: Int -> a -> a
 
 instance GenGamma Float where
-    generalizedGamma p x   = double2Float $ (generalizedGamma :: Double -> Double -> Double) (float2Double p) (float2Double x)
-    lnGeneralizedGamma p x = double2Float $ (generalizedGamma :: Double -> Double -> Double) (float2Double p) (float2Double x)
+    generalizedGamma   p x = double2Float $ (generalizedGamma   :: Int -> Double -> Double) p (float2Double x)
+    lnGeneralizedGamma p x = double2Float $ (lnGeneralizedGamma :: Int -> Double -> Double) p (float2Double x)
 
 instance GenGamma Double where
     generalizedGamma p x
         | p <= 0    = error "generalizedGamma p x: p must be strictly positive."
         | p == 1    = gamma x
-        | otherwise = (pi ** ((p - 1) / 2 )) * gamma x * generalizedGamma (p - 1) (x - 0.5)
+        | otherwise = (pi ** ((p' - 1) / 2 )) * gamma x * generalizedGamma (p - 1) (x - 0.5)
+        where p' = fromIntegral p
 
     lnGeneralizedGamma p x
         | p <= 0    = error "lnGeneralizedGamma p x: p must be strictly positive."
         | p == 1    = lnGamma x
-        | otherwise = log (pi ** ((p - 1) / 2)) + lnGamma x + lnGeneralizedGamma (p - 1) (x - 0.5)
+        | otherwise = log (pi ** ((p' - 1) / 2)) + lnGamma x + lnGeneralizedGamma (p - 1) (x - 0.5)
+        where p' = fromIntegral p
 
