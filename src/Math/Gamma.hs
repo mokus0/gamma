@@ -303,12 +303,14 @@ instance GenGamma Double where
     generalizedGamma p x
         | p <= 0    = error "generalizedGamma p x: p must be strictly positive."
         | p == 1    = gamma x
-        | otherwise = (pi ** ((p' - 1) / 2 )) * gamma x * generalizedGamma (p - 1) (x - 0.5)
+        | otherwise = pi ** (4 * p' * (p' - 1)) 
+            * product [ gamma (x - 0.5 * fromIntegral j) | j <- [0 .. p - 1]]
         where p' = fromIntegral p
 
     lnGeneralizedGamma p x
         | p <= 0    = error "lnGeneralizedGamma p x: p must be strictly positive."
         | p == 1    = lnGamma x
-        | otherwise = log (pi ** ((p' - 1) / 2)) + lnGamma x + lnGeneralizedGamma (p - 1) (x - 0.5)
+        | otherwise = (0.25 * log pi) * (p' * (p' - 1)) 
+            + sum [ lnGamma (x - 0.5 * fromIntegral j) | j <- [0 .. p - 1]]
         where p' = fromIntegral p
 
