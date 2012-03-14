@@ -13,7 +13,7 @@ homepage:               https://github.com/mokus0/gamma
 category:               Math, Numerical
 synopsis:               Gamma function and related functions.
 description:            Approximations of the gamma function, incomplete gamma 
-                        functions, and factorials.
+                        functions, generalized gamma functions, and factorials.
 
 tested-with:            GHC == 6.10.4,
                         GHC == 6.12.1, GHC == 6.12.3,
